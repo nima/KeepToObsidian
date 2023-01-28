@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+let e=0
+
+: ${OBSIDIAN_P:="${HOME}/Library/Mobile Documents/iCloud~md~obsidian"}
+: ${VAULT_N:="Cristobalite"}
+: ${IMAGES_D:="images"}
+
+OBSIDIAN_P+="/Documents/${VAULT_N}"
+EXPORT_P="${OBSIDIAN_P}/export/Keep" # Exporting from json out of here
+IMPORT_P="${OBSIDIAN_P}/import/Keep" # Importing to markdown in here
+IMAGES_P="${OBSIDIAN_P}/${IMAGES_D}" # Importing images here
+
+rm -rf "${IMPORT_P}"
+mkdir -p "${IMPORT_P}"
+
+for p in OBSIDIAN_P EXPORT_P IMPORT_P IMAGES_P; do
+    printf "Verifying ${p}[%s]..." "${!p}"
+    [ -d "${!p}" ] && echo PASS || { echo FAIL; let e=1; }
+done
+
+function main() {
+    local exportFrom
+    local importTo
+    local datum
+    local -a images
+
+    printf " - Copying images..."
+    gfind "${EXPORT_P}" -type f -not -name '*.json' -and -not -name '*.html' -printf '.' -exec cp "{}" "${IMAGES_P}" \;
+    echo "DONE"
+
+    echo "Migrating from Google Keep to Obsidian..."
+    while read filename; do
+        exportFrom="${EXPORT_P}/${filename}"
+        datum="$(cat "${exportFrom}")"
+
+        title="$(jq -rc '.title' <<< "${datum}")"
+	printf " - %s..." "${title}"
+
+        body="$(jq -rc '.textContent' <<< "${datum}")"
+        labels=( $(jq -rc 'select(.labels)|.labels[]|.name' <<< "${datum}") )
+        images=( $(jq -rc 'select(.attachments)|.attachments[]|.filePath' <<< "${datum}") )
+
+        importTo="${IMPORT_P}/${filename/%.json/.md}"
+        cat <<! > "${importTo}"
+# ${title}
+
+${body}
+
+---
+**images**$(printf " ![[${IMAGES_D}/%s]]" "${images[@]}")
+
+**tags** ${labels[*]/#/#}
+!
+        echo "DONE"
+    done < <(gfind "${EXPORT_P}" -type f -name "*.json" -printf "%f\n")
+}
+
+[ $e -ne 0 ] || main
+
+exit $e
