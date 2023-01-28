@@ -23,13 +23,17 @@ function main() {
     local exportFrom
     local importTo
     local datum
+    local created
+    local updated
+    local trashed
     local -a images
+
+    echo "Migrating from Google Keep to Obsidian..."
 
     printf " - Copying images..."
     gfind "${EXPORT_P}" -type f -not -name '*.json' -and -not -name '*.html' -printf '.' -exec cp "{}" "${IMAGES_P}" \;
     echo "DONE"
 
-    echo "Migrating from Google Keep to Obsidian..."
     while read filename; do
         exportFrom="${EXPORT_P}/${filename}"
         datum="$(cat "${exportFrom}")"
@@ -37,22 +41,36 @@ function main() {
         title="$(jq -rc '.title' <<< "${datum}")"
 	printf " - %s..." "${title}"
 
+	trashed=$(jq -rc '.isTrashed' <<< "${datum}")
+	if [ "${trashed}" == "true" ]; then
+	    echo "SKIP[${filename}]"
+	    continue
+	fi
+
+	created=$(jq -rc '.createdTimestampUsec/1000000|floor' <<< "${datum}")
+	updated=$(jq -rc '.userEditedTimestampUsec/1000000|floor' <<< "${datum}")
         body="$(jq -rc '.textContent' <<< "${datum}")"
         labels=( $(jq -rc 'select(.labels)|.labels[]|.name' <<< "${datum}") )
         images=( $(jq -rc 'select(.attachments)|.attachments[]|.filePath' <<< "${datum}") )
 
         importTo="${IMPORT_P}/${filename/%.json/.md}"
         cat <<! > "${importTo}"
+---
+created: $(gawk "BEGIN { print(strftime(\"%Y-%m-%dT%H:%M:%S-00:00\", ${created})); }")
+updated: $(gawk "BEGIN { print(strftime(\"%Y-%m-%dT%H:%M:%S-00:00\", ${updated})); }")
+---
 # ${title}
 
 ${body}
 
 ---
-**images**$(printf " ![[${IMAGES_D}/%s]]" "${images[@]}")
+## Images
+$(printf " ![[${IMAGES_D}/%s]]\n" "${images[@]}")
 
+---
 **tags** ${labels[*]/#/#}
 !
-        echo "DONE"
+        echo "DONE [${filename}]"
     done < <(gfind "${EXPORT_P}" -type f -name "*.json" -printf "%f\n")
 }
 
