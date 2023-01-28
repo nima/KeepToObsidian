@@ -65,3 +65,9 @@ The migration is aware of the following:
 - the `images` (both the image and the reference to it from within the migrated note),
 - the `created` and `modified` timestamps (in to Obsidian's front matter section) but in UTC (not local time), and in seconds (not microseconds as in Keep).
 - and of course, the `body`.
+
+## Caveats
+There are a few thing you would need to run this on your Mac; I've not tested it out on Linux; these can all be installed via `brew`
+- `jq`
+- `gawk`
+- `gfind`
