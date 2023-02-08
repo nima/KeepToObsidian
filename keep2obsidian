@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 let e=0
+let imagesheader=0
 
 : ${OBSIDIAN_P:="${HOME}/Library/Mobile Documents/iCloud~md~obsidian"}
 : ${VAULT_N:="Cristobalite"}
@@ -64,10 +65,9 @@ updated: $(gawk "BEGIN { print(strftime(\"%Y-%m-%dT%H:%M:%S-00:00\", ${updated})
 ${body}
 
 ---
-## Images
-$(printf " ![[${IMAGES_D}/%s]]\n" "${images[@]}")
-
----
+$(if [ ${#images[@]} -gt 0 ] && [ $imagesheader == 0 ]; then printf "## Images\n"; let imagesheader=$imagesheader+1; fi)
+$(if [ ${#images[@]} -gt 0 ]; then printf "![[${IMAGES_D}/%s]] \n\n" "${images[@]}"; fi)
+$(if [ ${#images[@]} -gt 0 ] && [ $imagesheader > 0 ]; then printf "\n---\n"; fi)
 **tags** ${labels[*]/#/#}
 !
         echo "DONE [${filename}]"
