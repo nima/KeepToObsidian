@@ -3,11 +3,11 @@
 let e=0
 let imagesheader=0
 
-: ${OBSIDIAN_P:="${HOME}/Library/Mobile Documents/iCloud~md~obsidian"}
-: ${VAULT_N:="Cristobalite"}
+: ${OBSIDIAN_P:="/mnt/z/Documents/Obsidian"}
+: ${VAULT_N:="DaHiveMind"}
 : ${IMAGES_D:="images"}
 
-OBSIDIAN_P+="/Documents/${VAULT_N}"
+OBSIDIAN_P+="/${VAULT_N}"
 EXPORT_P="${OBSIDIAN_P}/export/Keep" # Exporting from json out of here
 IMPORT_P="${OBSIDIAN_P}/import/Keep" # Importing to markdown in here
 IMAGES_P="${OBSIDIAN_P}/${IMAGES_D}" # Importing images here
@@ -32,7 +32,7 @@ function main() {
     echo "Migrating from Google Keep to Obsidian..."
 
     printf " - Copying images..."
-    gfind "${EXPORT_P}" -type f -not -name '*.json' -and -not -name '*.html' -printf '.' -exec cp "{}" "${IMAGES_P}" \;
+    find "${EXPORT_P}" -type f -not -name '*.json' -and -not -name '*.html' -printf '.' -exec cp "{}" "${IMAGES_P}" \;
     echo "DONE"
 
     while read filename; do
@@ -66,12 +66,13 @@ ${body}
 
 ---
 $(if [ ${#images[@]} -gt 0 ] && [ $imagesheader == 0 ]; then printf "## Images\n"; let imagesheader=$imagesheader+1; fi)
-$(if [ ${#images[@]} -gt 0 ]; then printf "![[${IMAGES_D}/%s]] \n\n" "${images[@]}"; fi)
+$(if [ ${#images[@]} -gt 0 ]; then printf "![[${IMAGES_D}/%s]] \n" "${images[@]}"; fi)
 $(if [ ${#images[@]} -gt 0 ] && [ $imagesheader > 0 ]; then printf "\n---\n"; fi)
+
 **tags** ${labels[*]/#/#}
 !
         echo "DONE [${filename}]"
-    done < <(gfind "${EXPORT_P}" -type f -name "*.json" -printf "%f\n")
+    done < <(find "${EXPORT_P}" -type f -name "*.json" -printf "%f\n")
 }
 
 [ $e -ne 0 ] || main
